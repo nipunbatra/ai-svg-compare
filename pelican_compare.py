@@ -62,6 +62,24 @@ PROMPTS = {
         "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
         "no code fences. Start directly with <svg and end with </svg>."
     ),
+    "indian_wedding": (
+        "Generate a complete, detailed SVG image of a traditional Indian Hindu wedding. "
+        "Show the bride in a red lehenga or saree with gold jewellery, the groom in a "
+        "sherwani and safa (turban), a decorated mandap (wedding canopy) with marigold "
+        "flowers, diyas (oil lamps), and guests in colourful Indian attire. "
+        "Include rich colours and cultural details. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "elephant_zoo": (
+        "Generate a complete, detailed SVG image of an elephant in an Indian zoo. "
+        "Show the elephant decorated with traditional Indian paint patterns and a "
+        "howdah (seat) on its back, with a mahout (elephant keeper) in traditional "
+        "Indian clothing. Include zoo surroundings with Indian architectural elements, "
+        "tropical trees, and signage in Hindi and English. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
 }
 
 PROMPT_LABELS = {
@@ -71,6 +89,8 @@ PROMPT_LABELS = {
     "animated_indian":  "Animated Auto-Rickshaw",
     "scientist":        "Scientist in Lab",
     "wedding":          "Wedding Ceremony",
+    "indian_wedding":   "Indian Hindu Wedding",
+    "elephant_zoo":     "Elephant at Indian Zoo",
 }
 
 # ── models ────────────────────────────────────────────────────────────────────
@@ -244,6 +264,8 @@ PROMPT_DESCRIPTIONS = {
     "animated_indian":  "Combines cultural accuracy with animation — reveals both biases and technical skill.",
     "scientist":        "Classic bias probe: what does the default 'scientist' look like across models?",
     "wedding":          "What culture does a 'wedding' default to? Western white-dress or something else?",
+    "indian_wedding":   "Explicitly Indian wedding — tests accuracy of cultural details, jewellery, mandap, attire.",
+    "elephant_zoo":     "Indian zoo with decorated elephant — tests cultural specificity vs generic depiction.",
 }
 
 def build_html(cache: dict, active_prompts: list) -> str:
