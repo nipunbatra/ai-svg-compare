@@ -80,17 +80,101 @@ PROMPTS = {
         "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
         "no code fences. Start directly with <svg and end with </svg>."
     ),
+    "animated_scientist": (
+        "Generate a complete animated SVG of a scientist working in a laboratory. "
+        "Animate something meaningful — bubbling test tubes, a spinning centrifuge, "
+        "blinking equipment lights, or the scientist writing on a board. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_wedding": (
+        "Generate a complete animated SVG of a wedding ceremony. "
+        "Animate something joyful — falling confetti or petals, waving guests, "
+        "flickering candles, or ringing bells. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_indian_wedding": (
+        "Generate a complete animated SVG of a traditional Indian Hindu wedding. "
+        "Animate cultural details — diyas (oil lamps) flickering, marigold petals "
+        "falling, the bride and groom exchanging garlands, or fireworks. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_elephant": (
+        "Generate a complete animated SVG of a decorated Indian elephant walking slowly, "
+        "with its trunk swaying, ears flapping, and the colourful howdah (seat) on its back. "
+        "Include a mahout and a festive background with palm trees. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "cricket": (
+        "Generate a complete, detailed SVG image of a cricket match in progress. "
+        "Show batsman, bowler, fielders, a pitch with wickets, and a crowd in the stands. "
+        "Include realistic cricket attire and equipment. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_cricket": (
+        "Generate a complete animated SVG of a cricket match. "
+        "Animate the bowler running up and bowling, the batsman's swing, or the ball "
+        "travelling through the air. Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    # static counterpart for animated_indian (which is a rickshaw)
+    "rickshaw": (
+        "Generate a complete, detailed SVG image of a colourful Indian auto-rickshaw "
+        "(tuk-tuk) on a busy street, with a driver visible and typical Indian street "
+        "surroundings — shops, signs, and pedestrians. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    # animated counterpart for indian (which is a cyclist)
+    "animated_indian_cyclist": (
+        "Generate a complete animated SVG of a person in traditional Indian clothing "
+        "riding a bicycle through a colourful Indian market street. "
+        "Animate the spinning wheels, moving legs, and a gently swaying crowd or "
+        "fluttering shop banners in the background. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
 }
 
+# ── groups: each entry = (tab label, static_pid, animated_pid) ──────────────
+PROMPT_GROUPS = [
+    ("Pelican on Bicycle",  "pelican",       "animated_pelican"),
+    ("Indian Cyclist",      "indian",        "animated_indian_cyclist"),
+    ("Auto-Rickshaw",       "rickshaw",      "animated_indian"),
+    ("Scientist in Lab",    "scientist",     "animated_scientist"),
+    ("Wedding Ceremony",    "wedding",       "animated_wedding"),
+    ("Indian Wedding",      "indian_wedding","animated_indian_wedding"),
+    ("Indian Elephant",     "elephant_zoo",  "animated_elephant"),
+    ("Cricket Match",       "cricket",       "animated_cricket"),
+]
+
 PROMPT_LABELS = {
-    "pelican":          "Pelican on Bicycle",
-    "indian":           "Indian Street Cyclist",
-    "animated_pelican": "Animated Pelican (CSS)",
-    "animated_indian":  "Animated Auto-Rickshaw",
-    "scientist":        "Scientist in Lab",
-    "wedding":          "Wedding Ceremony",
-    "indian_wedding":   "Indian Hindu Wedding",
-    "elephant_zoo":     "Elephant at Indian Zoo",
+    "pelican":                 "Pelican on Bicycle",
+    "indian":                  "Indian Street Cyclist",
+    "rickshaw":                "Indian Auto-Rickshaw",
+    "animated_pelican":        "Animated Pelican",
+    "animated_indian":         "Animated Auto-Rickshaw",
+    "animated_indian_cyclist": "Animated Indian Cyclist",
+    "scientist":               "Scientist in Lab",
+    "wedding":                 "Wedding Ceremony",
+    "indian_wedding":          "Indian Hindu Wedding",
+    "elephant_zoo":            "Elephant at Indian Zoo",
+    "animated_scientist":      "Animated Scientist",
+    "animated_wedding":        "Animated Wedding",
+    "animated_indian_wedding": "Animated Indian Wedding",
+    "animated_elephant":       "Animated Indian Elephant",
+    "cricket":                 "Cricket Match",
+    "animated_cricket":        "Animated Cricket Match",
 }
 
 # ── models ────────────────────────────────────────────────────────────────────
@@ -264,86 +348,116 @@ PROMPT_DESCRIPTIONS = {
     "animated_indian":  "Combines cultural accuracy with animation — reveals both biases and technical skill.",
     "scientist":        "Classic bias probe: what does the default 'scientist' look like across models?",
     "wedding":          "What culture does a 'wedding' default to? Western white-dress or something else?",
-    "indian_wedding":   "Explicitly Indian wedding — tests accuracy of cultural details, jewellery, mandap, attire.",
-    "elephant_zoo":     "Indian zoo with decorated elephant — tests cultural specificity vs generic depiction.",
+    "indian_wedding":          "Explicitly Indian wedding — tests accuracy of cultural details, jewellery, mandap, attire.",
+    "elephant_zoo":            "Indian zoo with decorated elephant — tests cultural specificity vs generic depiction.",
+    "animated_scientist":      "Can models animate a lab scene meaningfully? Reveals technical skill.",
+    "animated_wedding":        "Animated wedding — does the culture of the default wedding change when animated?",
+    "animated_indian_wedding": "Animated Indian wedding — diyas, garlands, petals. Cultural + animation accuracy.",
+    "animated_elephant":       "Animated decorated Indian elephant — trunk sway, ear flap, festive motion.",
+    "rickshaw":                "Static auto-rickshaw — pair with animated version to compare.",
+    "animated_indian_cyclist": "Animated Indian street cyclist — pair with static version to compare.",
+    "cricket":                 "Cricket match — how do models depict the world's most popular bat-and-ball sport?",
+    "animated_cricket":        "Animated cricket — bowler run-up, batting swing, or fielding action.",
 }
 
-def build_html(cache: dict) -> str:
-    # Only show prompts that have at least one successful result
-    active_prompts = [pid for pid in PROMPTS
-                      if any(cache.get(cache_key(pid, m), {}).get("svg")
-                             for m, _, _ in ALL_MODELS_ORDERED)]
-
-    # Only show models that have a successful SVG for every active prompt
-    complete_models = [
+def models_for_group(cache: dict, static_pid: str, anim_pid: str) -> list:
+    """Models that have SVGs for both pids in a group."""
+    return [
         (m, provider, fn) for m, provider, fn in ALL_MODELS_ORDERED
-        if all(cache.get(cache_key(pid, m), {}).get("svg") for pid in active_prompts)
+        if (cache.get(cache_key(static_pid, m), {}).get("svg") and
+            cache.get(cache_key(anim_pid,   m), {}).get("svg"))
     ]
-    dropped = [m for m, _, _ in ALL_MODELS_ORDERED
-               if m not in {x for x, _, _ in complete_models}]
-    if dropped:
-        print(f"Dropped from HTML (incomplete): {dropped}")
 
-    n_models  = len(complete_models)
-    n_prompts = len(active_prompts)
+def build_html(cache: dict) -> str:
+    # Only show groups where both prompts have at least one result
+    active_groups = [
+        (label, sp, ap) for label, sp, ap in PROMPT_GROUPS
+        if any(cache.get(cache_key(sp, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
+        and any(cache.get(cache_key(ap, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
+    ]
 
-    # Build JS registry: { pid: [{model, provider, svg, bgColor, fgColor}, ...] }
-    registry_js = "const REG = {\n"
-    for pid in active_prompts:
-        registry_js += f"  {json.dumps(pid)}: [\n"
-        for m, provider, _ in complete_models:
-            bg, fg = STYLES.get(provider, ("#222", "#aaa"))
-            svg = cache[cache_key(pid, m)].get("svg", "")
-            registry_js += (
-                f"    {{model:{json.dumps(m)},provider:{json.dumps(provider)},"
-                f"bg:{json.dumps(bg)},fg:{json.dumps(fg)},"
-                f"svg:{json.dumps(svg)}}},\n"
-            )
-        registry_js += "  ],\n"
-    registry_js += "};\n"
+    # Count totals for header
+    all_pids      = [pid for _, sp, ap in active_groups for pid in (sp, ap)]
+    complete_set  = set(m for m, _, _ in ALL_MODELS_ORDERED
+                        if all(cache.get(cache_key(pid, m), {}).get("svg") for pid in all_pids))
+    n_groups  = len(active_groups)
+    n_prompts = len(all_pids)
 
-    # Prompts JS map for displaying in lightbox
-    prompts_js = "const PROMPTS_TEXT = " + json.dumps({p: PROMPTS[p] for p in active_prompts}) + ";\n"
+    # Build JS registry — safe for embedding in <script>:
+    # replace </script> → <\/script> so it can't terminate the tag
+    def safe_js(s: str) -> str:
+        return s.replace("</", "<\\/")
+
+    registry_entries = []
+    for _, static_pid, anim_pid in active_groups:
+        for pid in (static_pid, anim_pid):
+            models = models_for_group(cache, static_pid, anim_pid)
+            entries = []
+            for m, provider, _ in models:
+                bg, fg = STYLES.get(provider, ("#222", "#aaa"))
+                svg = cache.get(cache_key(pid, m), {}).get("svg", "")
+                entries.append(
+                    f"{{model:{json.dumps(m)},provider:{json.dumps(provider)},"
+                    f"bg:{json.dumps(bg)},fg:{json.dumps(fg)},"
+                    f"svg:{json.dumps(safe_js(svg))}}}"
+                )
+            registry_entries.append(f"  {json.dumps(pid)}: [{','.join(entries)}]")
+    registry_js = "const REG = {\n" + ",\n".join(registry_entries) + "\n};\n"
+
+    prompts_js = ("const PROMPTS_TEXT = " +
+                  safe_js(json.dumps({p: PROMPTS[p] for _, sp, ap in active_groups
+                                      for p in (sp, ap)})) + ";\n")
 
     tabs_html   = ""
     panels_html = ""
-    for i, pid in enumerate(active_prompts):
-        label = PROMPT_LABELS.get(pid, pid)
-        desc  = PROMPT_DESCRIPTIONS.get(pid, "")
-        is_animated = "animated" in pid
-        anim_tag = " ▶" if is_animated else ""
+    for i, (group_label, static_pid, anim_pid) in enumerate(active_groups):
+        gid        = static_pid          # use static pid as group id
         active_cls = " active" if i == 0 else ""
         tabs_html += (
-            f'<button class="tab{active_cls}" onclick="showTab(\'{pid}\')" id="tab-{pid}">'
-            f'{label}{anim_tag}</button>\n'
+            f'<button class="tab{active_cls}" onclick="showTab(\'{gid}\')" id="tab-{gid}">'
+            f'{group_label}</button>\n'
         )
 
-        cards_html = ""
-        for idx, (m, provider, _) in enumerate(complete_models):
-            bg, fg = STYLES.get(provider, ("#222", "#aaa"))
-            svg    = cache[cache_key(pid, m)].get("svg", "")
-            cards_html += f"""<div class="card" onclick="openLb({json.dumps(pid)},{idx})" role="button" tabindex="0" aria-label="Expand {m}">
-  <div class="hdr">
-    <span class="badge" style="background:{bg};color:{fg}">{provider}</span>
-    <span class="name">{m}</span>
-  </div>
-  <div class="canvas">{svg}</div>
-  <div class="card-foot">tap to expand</div>
-</div>"""
+        models = models_for_group(cache, static_pid, anim_pid)
+        dropped = [m for m, _, _ in ALL_MODELS_ORDERED if m not in {x for x, _, _ in models}]
+        if dropped and i == 0:
+            print(f"  [{group_label}] no full coverage for: {dropped}")
 
-        panels_html += f"""<div class="panel{active_cls}" id="panel-{pid}">
-  <div class="prompt-bar">
-    <div class="prompt-meta">
-      <span class="prompt-label">{label}{' <span class="anim-badge">animated</span>' if is_animated else ''}</span>
-      <span class="prompt-desc">{desc}</span>
-    </div>
-    <details class="prompt-full">
-      <summary>Show full prompt</summary>
-      <p>{escape(PROMPTS[pid])}</p>
-    </details>
-  </div>
-  <div class="grid">{cards_html}</div>
-</div>"""
+        def section(pid: str, is_anim: bool) -> str:
+            desc = PROMPT_DESCRIPTIONS.get(pid, "")
+            sec_label = "Animated ▶" if is_anim else "Static"
+            cards = ""
+            for idx, (m, provider, _) in enumerate(models):
+                bg, fg = STYLES.get(provider, ("#222", "#aaa"))
+                svg = cache.get(cache_key(pid, m), {}).get("svg", "")
+                cards += (
+                    f'<div class="card" onclick="openLb({json.dumps(pid)},{idx})" '
+                    f'role="button" tabindex="0" aria-label="Expand {m}">'
+                    f'<div class="hdr">'
+                    f'<span class="badge" style="background:{bg};color:{fg}">{provider}</span>'
+                    f'<span class="name">{m}</span></div>'
+                    f'<div class="canvas">{svg}</div>'
+                    f'<div class="card-foot">tap to expand</div></div>'
+                )
+            return (
+                f'<div class="section-hdr">'
+                f'<span class="sec-label{"  anim" if is_anim else ""}">{sec_label}</span>'
+                f'<span class="sec-desc">{desc}</span>'
+                f'<details class="prompt-full"><summary>prompt</summary>'
+                f'<p>{escape(PROMPTS[pid])}</p></details>'
+                f'</div>'
+                f'<div class="grid">{cards}</div>'
+            )
+
+        panels_html += (
+            f'<div class="panel{active_cls}" id="panel-{gid}">'
+            f'{section(static_pid, False)}'
+            f'<div class="section-divider"></div>'
+            f'{section(anim_pid, True)}'
+            f'</div>'
+        )
+
+    n_models = len(models_for_group(cache, active_groups[0][1], active_groups[0][2])) if active_groups else 0
 
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -419,16 +533,24 @@ a{{color:inherit}}
 .prompt-full summary{{font-size:.72rem;color:var(--muted);cursor:pointer;user-select:none}}
 .prompt-full p{{margin-top:6px;font-size:.75rem;color:var(--muted);font-style:italic;
                 background:var(--surface2);padding:8px 12px;border-radius:6px;line-height:1.5}}
-/* ── panel / grid ── */
-.panel{{display:none;padding:16px 16px 40px}}
+/* ── panel / sections / grid ── */
+.panel{{display:none;padding:0 0 40px}}
 .panel.active{{display:block}}
+.section-hdr{{
+  padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);
+  display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;
+}}
+.sec-label{{font-weight:700;font-size:.8rem;letter-spacing:.04em;color:var(--text);white-space:nowrap}}
+.sec-label.anim{{color:#5dbb5d}}
+.sec-desc{{font-size:.76rem;color:var(--muted);flex:1}}
+.section-divider{{height:4px;background:var(--border)}}
 .grid{{
-  display:grid;gap:14px;max-width:1900px;margin:0 auto;
+  display:grid;gap:12px;max-width:1900px;margin:0 auto;padding:14px 16px;
   grid-template-columns:repeat(4,1fr);
 }}
-@media(max-width:1100px){{.grid{{grid-template-columns:repeat(3,1fr)}}}}
-@media(max-width:750px) {{.grid{{grid-template-columns:repeat(2,1fr)}}}}
-@media(max-width:480px) {{.grid{{grid-template-columns:1fr}}}}
+@media(max-width:1200px){{.grid{{grid-template-columns:repeat(3,1fr)}}}}
+@media(max-width:800px) {{.grid{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:500px) {{.grid{{grid-template-columns:1fr}}}}
 /* ── cards ── */
 .card{{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
@@ -494,10 +616,11 @@ a{{color:inherit}}
 <body>
 <header class="site-header">
   <h1>AI SVG — Bias &amp; Style Comparison</h1>
-  <p>Same prompt · {n_models} models · {n_prompts} prompts · click any image to explore</p>
+  <p>Same prompt · {n_models} models · {n_groups} subjects · {n_prompts} total prompts · click any image to explore</p>
   <div class="pills">
     <span class="pill">{n_models} models</span>
-    <span class="pill">{n_prompts} prompts</span>
+    <span class="pill">{n_groups} subjects</span>
+    <span class="pill">static + animated per subject</span>
     <span class="pill">Gemini · Claude · Codex</span>
   </div>
   <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle light/dark">🌙</button>
