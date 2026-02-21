@@ -443,9 +443,8 @@ def build_html(cache: dict) -> str:
         if dropped and i == 0:
             print(f"  [{group_label}] no full coverage for: {dropped}")
 
-        def section(pid: str, is_anim: bool) -> str:
+        def sub_panel(pid: str, is_anim: bool, sub_active: bool) -> str:
             desc = PROMPT_DESCRIPTIONS.get(pid, "")
-            sec_label = "Animated ▶" if is_anim else "Static"
             cards = ""
             for idx, (m, provider, _) in enumerate(models):
                 bg, fg = STYLES.get(provider, ("#222", "#aaa"))
@@ -459,21 +458,28 @@ def build_html(cache: dict) -> str:
                     f'<div class="canvas">{svg}</div>'
                     f'<div class="card-foot">tap to expand</div></div>'
                 )
+            sub_cls = " sub-active" if sub_active else ""
             return (
+                f'<div class="sub-panel{sub_cls}" id="sub-{gid}-{"anim" if is_anim else "static"}">'
                 f'<div class="section-hdr">'
-                f'<span class="sec-label{"  anim" if is_anim else ""}">{sec_label}</span>'
                 f'<span class="sec-desc">{desc}</span>'
                 f'<details class="prompt-full"><summary>prompt</summary>'
                 f'<p>{escape(PROMPTS[pid])}</p></details>'
                 f'</div>'
                 f'<div class="grid">{cards}</div>'
+                f'</div>'
             )
 
         panels_html += (
             f'<div class="panel{active_cls}" id="panel-{gid}">'
-            f'{section(static_pid, False)}'
-            f'<div class="section-divider"></div>'
-            f'{section(anim_pid, True)}'
+            f'<div class="sub-tab-bar">'
+            f'<button class="sub-tab sub-active" id="stab-{gid}-static" '
+            f'onclick="showSub(\'{gid}\',\'static\')">Static</button>'
+            f'<button class="sub-tab anim" id="stab-{gid}-anim" '
+            f'onclick="showSub(\'{gid}\',\'anim\')">Animated ▶</button>'
+            f'</div>'
+            f'{sub_panel(static_pid, False, True)}'
+            f'{sub_panel(anim_pid,   True,  False)}'
             f'</div>'
         )
 
@@ -553,17 +559,30 @@ a{{color:inherit}}
 .prompt-full summary{{font-size:.72rem;color:var(--muted);cursor:pointer;user-select:none}}
 .prompt-full p{{margin-top:6px;font-size:.75rem;color:var(--muted);font-style:italic;
                 background:var(--surface2);padding:8px 12px;border-radius:6px;line-height:1.5}}
-/* ── panel / sections / grid ── */
+/* ── panel / sub-tabs / grid ── */
 .panel{{display:none;padding:0 0 40px}}
 .panel.active{{display:block}}
+/* sub-tab toggle bar */
+.sub-tab-bar{{
+  display:flex;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:0 16px;gap:0;position:sticky;top:45px;z-index:15;
+}}
+.sub-tab{{
+  background:none;border:none;border-bottom:3px solid transparent;
+  color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:600;
+  padding:11px 20px;transition:color .15s,border-color .15s;white-space:nowrap;
+}}
+.sub-tab:hover{{color:var(--text)}}
+.sub-tab.sub-active{{color:var(--text);border-bottom-color:var(--tab-active)}}
+.sub-tab.anim.sub-active{{color:#5dbb5d;border-bottom-color:#5dbb5d}}
+/* sub-panels */
+.sub-panel{{display:none}}
+.sub-panel.sub-active{{display:block}}
 .section-hdr{{
-  padding:12px 20px;background:var(--surface);border-bottom:1px solid var(--border);
+  padding:10px 20px;background:var(--surface);border-bottom:1px solid var(--border);
   display:flex;align-items:baseline;flex-wrap:wrap;gap:10px;
 }}
-.sec-label{{font-weight:700;font-size:.8rem;letter-spacing:.04em;color:var(--text);white-space:nowrap}}
-.sec-label.anim{{color:#5dbb5d}}
 .sec-desc{{font-size:.76rem;color:var(--muted);flex:1}}
-.section-divider{{height:4px;background:var(--border)}}
 .grid{{
   display:grid;gap:12px;max-width:1900px;margin:0 auto;padding:14px 16px;
   grid-template-columns:repeat(4,1fr);
@@ -732,6 +751,14 @@ function showTab(id) {{
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('tab-'   + id).classList.add('active');
+}}
+
+// Sub-tab toggle (Static / Animated)
+function showSub(gid, which) {{
+  ['static','anim'].forEach(w => {{
+    document.getElementById('sub-'  + gid + '-' + w)?.classList.toggle('sub-active', w === which);
+    document.getElementById('stab-' + gid + '-' + w)?.classList.toggle('sub-active', w === which);
+  }});
 }}
 
 // Theme toggle
