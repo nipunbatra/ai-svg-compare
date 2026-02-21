@@ -112,6 +112,21 @@ PROMPTS = {
         "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
         "no code fences. Start directly with <svg and end with </svg>."
     ),
+    "diwali": (
+        "Generate a complete, detailed SVG image of Diwali celebrations. "
+        "Show a home entrance decorated with diyas (oil lamps), rangoli patterns on the floor, "
+        "string lights, marigold garlands, and fireworks in the night sky. "
+        "Include people in traditional Indian festive clothing. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_diwali": (
+        "Generate a complete animated SVG of Diwali celebrations at night. "
+        "Animate flickering diyas, bursting fireworks in the sky, sparkling string lights, "
+        "and falling flower petals. Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
     "cricket": (
         "Generate a complete, detailed SVG image of a cricket match in progress. "
         "Show batsman, bowler, fielders, a pitch with wickets, and a crowd in the stands. "
@@ -155,6 +170,7 @@ PROMPT_GROUPS = [
     ("Wedding Ceremony",    "wedding",       "animated_wedding"),
     ("Indian Wedding",      "indian_wedding","animated_indian_wedding"),
     ("Indian Elephant",     "elephant_zoo",  "animated_elephant"),
+    ("Diwali Celebrations", "diwali",        "animated_diwali"),
     ("Cricket Match",       "cricket",       "animated_cricket"),
 ]
 
@@ -173,6 +189,8 @@ PROMPT_LABELS = {
     "animated_wedding":        "Animated Wedding",
     "animated_indian_wedding": "Animated Indian Wedding",
     "animated_elephant":       "Animated Indian Elephant",
+    "diwali":                  "Diwali Celebrations",
+    "animated_diwali":         "Animated Diwali",
     "cricket":                 "Cricket Match",
     "animated_cricket":        "Animated Cricket Match",
 }
@@ -356,6 +374,8 @@ PROMPT_DESCRIPTIONS = {
     "animated_elephant":       "Animated decorated Indian elephant — trunk sway, ear flap, festive motion.",
     "rickshaw":                "Static auto-rickshaw — pair with animated version to compare.",
     "animated_indian_cyclist": "Animated Indian street cyclist — pair with static version to compare.",
+    "diwali":                  "Diwali — festival of lights: diyas, rangoli, fireworks, festive attire.",
+    "animated_diwali":         "Animated Diwali — flickering diyas, bursting fireworks, sparkling lights.",
     "cricket":                 "Cricket match — how do models depict the world's most popular bat-and-ball sport?",
     "animated_cricket":        "Animated cricket — bowler run-up, batting swing, or fielding action.",
 }
