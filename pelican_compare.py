@@ -82,8 +82,8 @@ CODEX_MODELS = [
 CLAUDE_BIN     = os.path.expanduser("~/.local/bin/claude")
 CLAUDE_TIMEOUT = 600
 CODEX_TIMEOUT  = 300
-CACHE_FILE     = Path("pelican_cache.json")
-OUT_FILE       = "pelican_comparison.html"
+CACHE_FILE     = Path(__file__).parent / "pelican_cache.json"
+OUT_FILE       = Path(__file__).parent / "index.html"
 
 _codex_sem = asyncio.Semaphore(1)   # codex starts agents-mcp per call — serialize to avoid conflicts
 
@@ -223,70 +223,175 @@ def card(model: str, r: dict) -> str:
   <div class="canvas">{body}</div>
 </div>"""
 
+PROMPT_DESCRIPTIONS = {
+    "pelican":          "A classic prompt with no cultural context — useful as a neutral baseline.",
+    "indian":           "Tests whether models depict South Asian cultural elements accurately (clothing, street scene, vendors).",
+    "animated_pelican": "Tests CSS/SMIL animation capability on a familiar subject.",
+    "animated_indian":  "Combines cultural accuracy with animation — reveals both biases and technical skill.",
+}
+
 def build_html(cache: dict, active_prompts: list) -> str:
-    # Only include models that rendered successfully for every active prompt
     complete_models = [
         (m, provider, fn) for m, provider, fn in ALL_MODELS_ORDERED
         if all(cache.get(cache_key(pid, m), {}).get("svg") for pid in active_prompts)
     ]
-    dropped = [m for m, _, _ in ALL_MODELS_ORDERED if (m, ) not in [(x, ) for x, _, _ in complete_models]]
+    dropped = [m for m, _, _ in ALL_MODELS_ORDERED
+               if m not in {x for x, _, _ in complete_models}]
     if dropped:
         print(f"Dropped from HTML (incomplete): {dropped}")
+
+    n_models = len(complete_models)
+    cols = min(n_models, 4)
 
     tabs_html = ""
     panels_html = ""
     for i, pid in enumerate(active_prompts):
         label = PROMPT_LABELS.get(pid, pid)
+        desc  = PROMPT_DESCRIPTIONS.get(pid, "")
+        is_animated = "animated" in pid
         active_tab   = " active" if i == 0 else ""
         active_panel = " active" if i == 0 else ""
-        tabs_html += f'<button class="tab{active_tab}" onclick="show(\'{pid}\')" id="tab-{pid}">{label}</button>\n'
+        anim_badge   = '<span class="anim-badge">animated</span>' if is_animated else ""
+        tabs_html += (
+            f'<button class="tab{active_tab}" onclick="show(\'{pid}\')" id="tab-{pid}">'
+            f'{label}{" ▶" if is_animated else ""}</button>\n'
+        )
 
-        cards = []
+        cards_html = ""
         for m, provider, _ in complete_models:
             key = cache_key(pid, m)
-            r = dict(cache[key]); r["cached"] = True
-            cards.append(card(m, r))
-
-        n = len(complete_models)
-        cols = min(n, 4)
-        panels_html += f"""<div class="panel{active_panel}" id="panel-{pid}">
-  <div class="grid" style="grid-template-columns:repeat({cols},1fr)">
-    {"".join(cards)}
+            r = cache[key]
+            bg, fg = STYLES.get(provider, ("#222", "#aaa"))
+            svg_content = r.get("svg", "")
+            cards_html += f"""
+<div class="card" onclick="openLight(this)">
+  <div class="hdr">
+    <span class="badge" style="background:{bg};color:{fg}">{provider}</span>
+    <span class="name">{m}</span>
   </div>
-</div>\n"""
+  <div class="canvas" data-svg>{svg_content}</div>
+  <div class="card-foot">click to expand</div>
+</div>"""
+
+        panels_html += f"""
+<div class="panel{active_panel}" id="panel-{pid}">
+  <div class="prompt-bar">
+    <div class="prompt-label">{label} {anim_badge}</div>
+    <div class="prompt-desc">{desc}</div>
+    <div class="prompt-text"><em>Prompt:</em> {escape(PROMPTS[pid][:160])}…</div>
+  </div>
+  <div class="grid" style="grid-template-columns:repeat({cols},1fr)">{cards_html}</div>
+</div>"""
 
     return f"""<!DOCTYPE html>
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>AI SVG Comparison</title>
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>AI SVG Bias &amp; Style Comparison</title>
 <style>
+:root{{
+  --bg:#0b0b0e;--surface:#15151a;--border:#26262f;--border2:#32323e;
+  --text:#e2e2e8;--muted:#666;--muted2:#444;
+}}
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:system-ui,sans-serif;background:#0d0d10;color:#ddd;padding:20px 16px}}
-h1{{text-align:center;font-size:1.3rem;font-weight:600;margin-bottom:4px}}
-.sub{{text-align:center;color:#555;font-size:.76rem;margin-bottom:18px}}
-.tabs{{display:flex;gap:6px;flex-wrap:wrap;justify-content:center;margin-bottom:20px}}
-.tab{{background:#1a1a1f;border:1px solid #2e2e38;border-radius:6px;color:#888;
-      cursor:pointer;font-size:.8rem;padding:7px 16px;transition:all .15s}}
-.tab:hover{{color:#ccc;border-color:#555}}
-.tab.active{{background:#252530;border-color:#4a4a60;color:#eee;font-weight:600}}
-.panel{{display:none}}.panel.active{{display:block}}
-.grid{{display:grid;gap:14px;max-width:1800px;margin:0 auto}}
-.card{{background:#18181d;border:1px solid #2a2a35;border-radius:9px;overflow:hidden;display:flex;flex-direction:column}}
-.hdr{{padding:9px 13px;border-bottom:1px solid #2a2a35;display:flex;align-items:center;gap:7px}}
-.badge{{font-size:.6rem;font-weight:700;padding:2px 6px;border-radius:3px;text-transform:uppercase;letter-spacing:.06em;white-space:nowrap}}
-.name{{font-size:.76rem;color:#999;word-break:break-all}}
-.dim{{opacity:.4;font-size:.65rem}}
-.canvas{{padding:10px;background:#f4f4f4;flex:1;display:flex;align-items:center;justify-content:center;min-height:200px}}
-.canvas svg{{width:100%;height:auto;max-height:380px}}
-.err{{color:#c0392b;font-size:.73rem;font-family:monospace;background:#fff5f5;padding:10px;border-radius:5px;border:1px solid #f5c6c6;word-break:break-word}}
+body{{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}}
+/* ── header ── */
+.site-header{{
+  text-align:center;padding:28px 20px 16px;
+  border-bottom:1px solid var(--border);margin-bottom:0;
+}}
+.site-header h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.01em;margin-bottom:4px}}
+.site-header p{{color:var(--muted);font-size:.82rem}}
+.pills{{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}}
+.pill{{background:var(--surface);border:1px solid var(--border2);border-radius:20px;
+       font-size:.7rem;color:var(--muted);padding:3px 10px}}
+/* ── tabs ── */
+.tab-bar{{
+  position:sticky;top:0;z-index:10;
+  background:var(--bg);border-bottom:1px solid var(--border);
+  display:flex;gap:0;overflow-x:auto;padding:0 20px;
+}}
+.tab{{
+  background:none;border:none;border-bottom:3px solid transparent;
+  color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:500;
+  padding:13px 18px;white-space:nowrap;transition:color .15s,border-color .15s;
+}}
+.tab:hover{{color:var(--text)}}
+.tab.active{{color:var(--text);border-bottom-color:#7c7cff}}
+/* ── prompt bar ── */
+.prompt-bar{{
+  background:var(--surface);border-bottom:1px solid var(--border);
+  padding:14px 24px;display:flex;flex-direction:column;gap:4px;
+}}
+.prompt-label{{font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:8px}}
+.prompt-desc{{color:#aaa;font-size:.8rem}}
+.prompt-text{{color:var(--muted);font-size:.74rem;font-style:italic;margin-top:2px}}
+.anim-badge{{background:#1a2e1a;color:#5dbb5d;border:1px solid #2d4a2d;
+             border-radius:4px;font-size:.6rem;padding:2px 6px;font-style:normal;font-weight:700;text-transform:uppercase}}
+/* ── panels ── */
+.panel{{display:none;padding:20px 20px 32px}}
+.panel.active{{display:block}}
+/* ── grid ── */
+.grid{{display:grid;gap:16px;max-width:1900px;margin:0 auto}}
+/* ── cards ── */
+.card{{
+  background:var(--surface);border:1px solid var(--border);border-radius:10px;
+  overflow:hidden;display:flex;flex-direction:column;cursor:pointer;
+  transition:border-color .15s,transform .1s;
+}}
+.card:hover{{border-color:var(--border2);transform:translateY(-2px)}}
+.hdr{{padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}}
+.badge{{font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:3px;
+        text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}}
+.name{{font-size:.74rem;color:var(--muted);word-break:break-all;flex:1}}
+.canvas{{padding:10px;background:#f5f5f5;flex:1;display:flex;align-items:center;
+         justify-content:center;min-height:200px;overflow:hidden}}
+.canvas svg{{width:100%;height:auto;max-height:340px;display:block}}
+.card-foot{{padding:5px 12px;font-size:.65rem;color:var(--muted2);text-align:right;
+            border-top:1px solid var(--border);background:var(--bg)}}
+/* ── lightbox ── */
+#lightbox{{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;
+  align-items:center;justify-content:center;padding:24px;
+}}
+#lightbox.open{{display:flex}}
+#lb-inner{{
+  background:#fff;border-radius:12px;max-width:90vw;max-height:90vh;
+  overflow:auto;padding:16px;position:relative;
+}}
+#lb-inner svg{{width:80vw;height:auto;max-height:80vh;display:block}}
+#lb-close{{
+  position:absolute;top:10px;right:14px;background:none;border:none;
+  font-size:1.4rem;cursor:pointer;color:#333;line-height:1;
+}}
 </style>
 </head>
 <body>
-<h1>AI SVG Comparison — Bias &amp; Style Analysis</h1>
-<p class="sub">{len(complete_models)} models &nbsp;·&nbsp; {len(active_prompts)} prompts &nbsp;·&nbsp; results cached in pelican_cache.json</p>
-<div class="tabs">{tabs_html}</div>
+<header class="site-header">
+  <h1>AI SVG — Bias &amp; Style Comparison</h1>
+  <p>Same prompt, {n_models} models. How do they differ — culturally, aesthetically, technically?</p>
+  <div class="pills">
+    <span class="pill">{n_models} models</span>
+    <span class="pill">{len(active_prompts)} prompts</span>
+    <span class="pill">Gemini · Claude · Codex</span>
+  </div>
+</header>
+
+<div class="tab-bar">
+{tabs_html}
+</div>
+
 {panels_html}
+
+<!-- lightbox -->
+<div id="lightbox" onclick="closeLight(event)">
+  <div id="lb-inner">
+    <button id="lb-close" onclick="closeLightDirect()">✕</button>
+    <div id="lb-content"></div>
+  </div>
+</div>
+
 <script>
 function show(id){{
   document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
@@ -294,6 +399,19 @@ function show(id){{
   document.getElementById('panel-'+id).classList.add('active');
   document.getElementById('tab-'+id).classList.add('active');
 }}
+function openLight(card){{
+  const svg = card.querySelector('[data-svg]').innerHTML;
+  document.getElementById('lb-content').innerHTML = svg;
+  document.getElementById('lightbox').classList.add('open');
+}}
+function closeLight(e){{
+  if(e.target===document.getElementById('lightbox')) closeLightDirect();
+}}
+function closeLightDirect(){{
+  document.getElementById('lightbox').classList.remove('open');
+  document.getElementById('lb-content').innerHTML='';
+}}
+document.addEventListener('keydown',e=>{{ if(e.key==='Escape') closeLightDirect(); }});
 </script>
 </body>
 </html>"""
