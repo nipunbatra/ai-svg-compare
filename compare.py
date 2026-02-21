@@ -116,7 +116,7 @@ CODEX_MODELS = [
 CLAUDE_BIN     = os.path.expanduser("~/.local/bin/claude")
 CLAUDE_TIMEOUT = 600
 CODEX_TIMEOUT  = 300
-CACHE_FILE     = Path(__file__).parent / "pelican_cache.json"
+CACHE_FILE     = Path(__file__).parent / "svg_cache.json"
 OUT_FILE       = Path(__file__).parent / "index.html"
 
 _codex_sem = asyncio.Semaphore(1)   # codex starts agents-mcp per call — serialize to avoid conflicts
@@ -268,7 +268,13 @@ PROMPT_DESCRIPTIONS = {
     "elephant_zoo":     "Indian zoo with decorated elephant — tests cultural specificity vs generic depiction.",
 }
 
-def build_html(cache: dict, active_prompts: list) -> str:
+def build_html(cache: dict) -> str:
+    # Only show prompts that have at least one successful result
+    active_prompts = [pid for pid in PROMPTS
+                      if any(cache.get(cache_key(pid, m), {}).get("svg")
+                             for m, _, _ in ALL_MODELS_ORDERED)]
+
+    # Only show models that have a successful SVG for every active prompt
     complete_models = [
         (m, provider, fn) for m, provider, fn in ALL_MODELS_ORDERED
         if all(cache.get(cache_key(pid, m), {}).get("svg") for pid in active_prompts)
@@ -278,178 +284,332 @@ def build_html(cache: dict, active_prompts: list) -> str:
     if dropped:
         print(f"Dropped from HTML (incomplete): {dropped}")
 
-    n_models = len(complete_models)
-    cols = min(n_models, 4)
+    n_models  = len(complete_models)
+    n_prompts = len(active_prompts)
 
-    tabs_html = ""
+    # Build JS registry: { pid: [{model, provider, svg, bgColor, fgColor}, ...] }
+    registry_js = "const REG = {\n"
+    for pid in active_prompts:
+        registry_js += f"  {json.dumps(pid)}: [\n"
+        for m, provider, _ in complete_models:
+            bg, fg = STYLES.get(provider, ("#222", "#aaa"))
+            svg = cache[cache_key(pid, m)].get("svg", "")
+            registry_js += (
+                f"    {{model:{json.dumps(m)},provider:{json.dumps(provider)},"
+                f"bg:{json.dumps(bg)},fg:{json.dumps(fg)},"
+                f"svg:{json.dumps(svg)}}},\n"
+            )
+        registry_js += "  ],\n"
+    registry_js += "};\n"
+
+    # Prompts JS map for displaying in lightbox
+    prompts_js = "const PROMPTS_TEXT = " + json.dumps({p: PROMPTS[p] for p in active_prompts}) + ";\n"
+
+    tabs_html   = ""
     panels_html = ""
     for i, pid in enumerate(active_prompts):
         label = PROMPT_LABELS.get(pid, pid)
         desc  = PROMPT_DESCRIPTIONS.get(pid, "")
         is_animated = "animated" in pid
-        active_tab   = " active" if i == 0 else ""
-        active_panel = " active" if i == 0 else ""
-        anim_badge   = '<span class="anim-badge">animated</span>' if is_animated else ""
+        anim_tag = " ▶" if is_animated else ""
+        active_cls = " active" if i == 0 else ""
         tabs_html += (
-            f'<button class="tab{active_tab}" onclick="show(\'{pid}\')" id="tab-{pid}">'
-            f'{label}{" ▶" if is_animated else ""}</button>\n'
+            f'<button class="tab{active_cls}" onclick="showTab(\'{pid}\')" id="tab-{pid}">'
+            f'{label}{anim_tag}</button>\n'
         )
 
         cards_html = ""
-        for m, provider, _ in complete_models:
-            key = cache_key(pid, m)
-            r = cache[key]
+        for idx, (m, provider, _) in enumerate(complete_models):
             bg, fg = STYLES.get(provider, ("#222", "#aaa"))
-            svg_content = r.get("svg", "")
-            cards_html += f"""
-<div class="card" onclick="openLight(this)">
+            svg    = cache[cache_key(pid, m)].get("svg", "")
+            cards_html += f"""<div class="card" onclick="openLb({json.dumps(pid)},{idx})" role="button" tabindex="0" aria-label="Expand {m}">
   <div class="hdr">
     <span class="badge" style="background:{bg};color:{fg}">{provider}</span>
     <span class="name">{m}</span>
   </div>
-  <div class="canvas" data-svg>{svg_content}</div>
-  <div class="card-foot">click to expand</div>
+  <div class="canvas">{svg}</div>
+  <div class="card-foot">tap to expand</div>
 </div>"""
 
-        panels_html += f"""
-<div class="panel{active_panel}" id="panel-{pid}">
+        panels_html += f"""<div class="panel{active_cls}" id="panel-{pid}">
   <div class="prompt-bar">
-    <div class="prompt-label">{label} {anim_badge}</div>
-    <div class="prompt-desc">{desc}</div>
-    <div class="prompt-text"><em>Prompt:</em> {escape(PROMPTS[pid][:160])}…</div>
+    <div class="prompt-meta">
+      <span class="prompt-label">{label}{' <span class="anim-badge">animated</span>' if is_animated else ''}</span>
+      <span class="prompt-desc">{desc}</span>
+    </div>
+    <details class="prompt-full">
+      <summary>Show full prompt</summary>
+      <p>{escape(PROMPTS[pid])}</p>
+    </details>
   </div>
-  <div class="grid" style="grid-template-columns:repeat({cols},1fr)">{cards_html}</div>
+  <div class="grid">{cards_html}</div>
 </div>"""
 
     return f"""<!DOCTYPE html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>AI SVG Bias &amp; Style Comparison</title>
+<title>AI SVG — Bias &amp; Style Comparison</title>
 <style>
-:root{{
-  --bg:#0b0b0e;--surface:#15151a;--border:#26262f;--border2:#32323e;
-  --text:#e2e2e8;--muted:#666;--muted2:#444;
+/* ── themes ── */
+[data-theme="dark"]{{
+  --bg:#0b0b0e;--surface:#15151a;--surface2:#1e1e26;
+  --border:#26262f;--border2:#3a3a48;
+  --text:#e2e2e8;--muted:#888;--muted2:#555;
+  --canvas-bg:#f5f5f5;
+  --lb-bg:#1a1a22;--lb-border:#33334a;--lb-text:#e2e2e8;
+  --tab-active:#7c7cff;
 }}
+[data-theme="light"]{{
+  --bg:#f5f5f8;--surface:#ffffff;--surface2:#eeeef4;
+  --border:#dddde8;--border2:#c8c8d8;
+  --text:#18181f;--muted:#777;--muted2:#aaa;
+  --canvas-bg:#f9f9f9;
+  --lb-bg:#ffffff;--lb-border:#dddde8;--lb-text:#18181f;
+  --tab-active:#5555ee;
+}}
+/* ── reset ── */
 *{{box-sizing:border-box;margin:0;padding:0}}
-body{{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh}}
+body{{font-family:system-ui,-apple-system,sans-serif;background:var(--bg);color:var(--text);min-height:100vh;transition:background .2s,color .2s}}
+a{{color:inherit}}
 /* ── header ── */
 .site-header{{
-  text-align:center;padding:28px 20px 16px;
-  border-bottom:1px solid var(--border);margin-bottom:0;
+  text-align:center;padding:22px 20px 14px;
+  border-bottom:1px solid var(--border);position:relative;
 }}
-.site-header h1{{font-size:1.5rem;font-weight:700;letter-spacing:-.01em;margin-bottom:4px}}
-.site-header p{{color:var(--muted);font-size:.82rem}}
-.pills{{display:flex;gap:8px;justify-content:center;margin-top:10px;flex-wrap:wrap}}
-.pill{{background:var(--surface);border:1px solid var(--border2);border-radius:20px;
-       font-size:.7rem;color:var(--muted);padding:3px 10px}}
-/* ── tabs ── */
+.site-header h1{{font-size:clamp(1.1rem,4vw,1.5rem);font-weight:700;letter-spacing:-.01em;margin-bottom:3px}}
+.site-header p{{color:var(--muted);font-size:clamp(.72rem,2vw,.84rem)}}
+.pills{{display:flex;gap:6px;justify-content:center;margin-top:8px;flex-wrap:wrap}}
+.pill{{background:var(--surface2);border:1px solid var(--border2);border-radius:20px;font-size:.68rem;color:var(--muted);padding:2px 9px}}
+/* ── theme toggle ── */
+.theme-btn{{
+  position:absolute;top:16px;right:16px;
+  background:var(--surface2);border:1px solid var(--border2);border-radius:8px;
+  color:var(--text);cursor:pointer;font-size:1.1rem;padding:5px 9px;
+  transition:background .15s;
+}}
+.theme-btn:hover{{background:var(--border2)}}
+/* ── tab bar ── */
 .tab-bar{{
-  position:sticky;top:0;z-index:10;
-  background:var(--bg);border-bottom:1px solid var(--border);
-  display:flex;gap:0;overflow-x:auto;padding:0 20px;
+  position:sticky;top:0;z-index:20;background:var(--bg);
+  border-bottom:1px solid var(--border);
+  display:flex;overflow-x:auto;padding:0 12px;
+  scrollbar-width:none;-ms-overflow-style:none;
 }}
+.tab-bar::-webkit-scrollbar{{display:none}}
 .tab{{
   background:none;border:none;border-bottom:3px solid transparent;
-  color:var(--muted);cursor:pointer;font-size:.85rem;font-weight:500;
-  padding:13px 18px;white-space:nowrap;transition:color .15s,border-color .15s;
+  color:var(--muted);cursor:pointer;font-size:clamp(.75rem,2vw,.85rem);font-weight:500;
+  padding:12px 14px;white-space:nowrap;transition:color .15s,border-color .15s;flex-shrink:0;
 }}
 .tab:hover{{color:var(--text)}}
-.tab.active{{color:var(--text);border-bottom-color:#7c7cff}}
+.tab.active{{color:var(--text);border-bottom-color:var(--tab-active)}}
 /* ── prompt bar ── */
 .prompt-bar{{
   background:var(--surface);border-bottom:1px solid var(--border);
-  padding:14px 24px;display:flex;flex-direction:column;gap:4px;
+  padding:12px 20px;display:flex;flex-direction:column;gap:4px;
 }}
-.prompt-label{{font-weight:600;font-size:.95rem;display:flex;align-items:center;gap:8px}}
-.prompt-desc{{color:#aaa;font-size:.8rem}}
-.prompt-text{{color:var(--muted);font-size:.74rem;font-style:italic;margin-top:2px}}
+.prompt-meta{{display:flex;align-items:baseline;flex-wrap:wrap;gap:8px}}
+.prompt-label{{font-weight:600;font-size:.9rem}}
+.prompt-desc{{color:var(--muted);font-size:.78rem}}
 .anim-badge{{background:#1a2e1a;color:#5dbb5d;border:1px solid #2d4a2d;
-             border-radius:4px;font-size:.6rem;padding:2px 6px;font-style:normal;font-weight:700;text-transform:uppercase}}
-/* ── panels ── */
-.panel{{display:none;padding:20px 20px 32px}}
+             border-radius:4px;font-size:.58rem;padding:1px 5px;font-weight:700;text-transform:uppercase;vertical-align:middle}}
+.prompt-full{{margin-top:4px}}
+.prompt-full summary{{font-size:.72rem;color:var(--muted);cursor:pointer;user-select:none}}
+.prompt-full p{{margin-top:6px;font-size:.75rem;color:var(--muted);font-style:italic;
+                background:var(--surface2);padding:8px 12px;border-radius:6px;line-height:1.5}}
+/* ── panel / grid ── */
+.panel{{display:none;padding:16px 16px 40px}}
 .panel.active{{display:block}}
-/* ── grid ── */
-.grid{{display:grid;gap:16px;max-width:1900px;margin:0 auto}}
+.grid{{
+  display:grid;gap:14px;max-width:1900px;margin:0 auto;
+  grid-template-columns:repeat(4,1fr);
+}}
+@media(max-width:1100px){{.grid{{grid-template-columns:repeat(3,1fr)}}}}
+@media(max-width:750px) {{.grid{{grid-template-columns:repeat(2,1fr)}}}}
+@media(max-width:480px) {{.grid{{grid-template-columns:1fr}}}}
 /* ── cards ── */
 .card{{
   background:var(--surface);border:1px solid var(--border);border-radius:10px;
   overflow:hidden;display:flex;flex-direction:column;cursor:pointer;
-  transition:border-color .15s,transform .1s;
+  transition:border-color .15s,box-shadow .15s;
 }}
-.card:hover{{border-color:var(--border2);transform:translateY(-2px)}}
-.hdr{{padding:9px 12px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:7px}}
-.badge{{font-size:.58rem;font-weight:700;padding:2px 6px;border-radius:3px;
-        text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}}
-.name{{font-size:.74rem;color:var(--muted);word-break:break-all;flex:1}}
-.canvas{{padding:10px;background:#f5f5f5;flex:1;display:flex;align-items:center;
-         justify-content:center;min-height:200px;overflow:hidden}}
-.canvas svg{{width:100%;height:auto;max-height:340px;display:block}}
-.card-foot{{padding:5px 12px;font-size:.65rem;color:var(--muted2);text-align:right;
-            border-top:1px solid var(--border);background:var(--bg)}}
-/* ── lightbox ── */
-#lightbox{{
-  display:none;position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:100;
-  align-items:center;justify-content:center;padding:24px;
+.card:hover{{border-color:var(--border2);box-shadow:0 4px 20px rgba(0,0,0,.15)}}
+.card:focus{{outline:2px solid var(--tab-active);outline-offset:2px}}
+.hdr{{padding:8px 11px;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:6px}}
+.badge{{font-size:.57rem;font-weight:700;padding:2px 6px;border-radius:3px;
+        text-transform:uppercase;letter-spacing:.07em;white-space:nowrap;flex-shrink:0}}
+.name{{font-size:.72rem;color:var(--muted);word-break:break-all;flex:1;min-width:0}}
+.canvas{{padding:8px;background:var(--canvas-bg);flex:1;display:flex;align-items:center;
+         justify-content:center;min-height:180px;overflow:hidden}}
+.canvas svg{{width:100%;height:auto;max-height:300px;display:block}}
+.card-foot{{padding:4px 11px;font-size:.62rem;color:var(--muted2);text-align:right;
+            border-top:1px solid var(--border)}}
+/* ── lightbox overlay ── */
+#lb-overlay{{
+  display:none;position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:100;
+  align-items:center;justify-content:center;padding:16px;
 }}
-#lightbox.open{{display:flex}}
-#lb-inner{{
-  background:#fff;border-radius:12px;max-width:90vw;max-height:90vh;
-  overflow:auto;padding:16px;position:relative;
+#lb-overlay.open{{display:flex}}
+/* ── lightbox box ── */
+#lb-box{{
+  background:var(--lb-bg);border:1px solid var(--lb-border);border-radius:14px;
+  display:flex;flex-direction:column;max-width:min(860px,96vw);width:100%;
+  max-height:95vh;overflow:hidden;position:relative;
 }}
-#lb-inner svg{{width:80vw;height:auto;max-height:80vh;display:block}}
-#lb-close{{
-  position:absolute;top:10px;right:14px;background:none;border:none;
-  font-size:1.4rem;cursor:pointer;color:#333;line-height:1;
+/* ── lightbox header ── */
+#lb-hdr{{
+  padding:12px 16px;border-bottom:1px solid var(--lb-border);
+  display:flex;align-items:center;gap:8px;flex-shrink:0;
 }}
+#lb-badge{{font-size:.6rem;font-weight:700;padding:2px 7px;border-radius:3px;
+           text-transform:uppercase;letter-spacing:.07em;white-space:nowrap}}
+#lb-model{{font-size:.85rem;font-weight:600;color:var(--lb-text);flex:1}}
+#lb-counter{{font-size:.75rem;color:var(--muted);white-space:nowrap}}
+#lb-close{{background:none;border:none;font-size:1.2rem;cursor:pointer;color:var(--muted);padding:2px 6px;border-radius:4px}}
+#lb-close:hover{{color:var(--lb-text)}}
+/* ── lightbox svg area ── */
+#lb-svg{{
+  flex:1;overflow:auto;padding:16px;background:var(--canvas-bg);
+  display:flex;align-items:center;justify-content:center;min-height:200px;
+}}
+#lb-svg svg{{width:100%;height:auto;max-height:60vh;display:block}}
+/* ── lightbox footer ── */
+#lb-ftr{{
+  padding:10px 16px;border-top:1px solid var(--lb-border);
+  display:flex;align-items:center;gap:10px;flex-shrink:0;
+}}
+#lb-prompt{{font-size:.72rem;color:var(--muted);font-style:italic;flex:1;
+            line-height:1.4;max-height:4em;overflow:auto}}
+.lb-nav{{
+  background:var(--surface2);border:1px solid var(--lb-border);border-radius:8px;
+  color:var(--lb-text);cursor:pointer;font-size:1rem;padding:6px 14px;
+  transition:background .15s;flex-shrink:0;
+}}
+.lb-nav:hover{{background:var(--border2)}}
+.lb-nav:disabled{{opacity:.3;cursor:default}}
 </style>
 </head>
 <body>
 <header class="site-header">
   <h1>AI SVG — Bias &amp; Style Comparison</h1>
-  <p>Same prompt, {n_models} models. How do they differ — culturally, aesthetically, technically?</p>
+  <p>Same prompt · {n_models} models · {n_prompts} prompts · click any image to explore</p>
   <div class="pills">
     <span class="pill">{n_models} models</span>
-    <span class="pill">{len(active_prompts)} prompts</span>
+    <span class="pill">{n_prompts} prompts</span>
     <span class="pill">Gemini · Claude · Codex</span>
   </div>
+  <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle light/dark">🌙</button>
 </header>
 
-<div class="tab-bar">
+<div class="tab-bar" id="tab-bar">
 {tabs_html}
 </div>
 
 {panels_html}
 
 <!-- lightbox -->
-<div id="lightbox" onclick="closeLight(event)">
-  <div id="lb-inner">
-    <button id="lb-close" onclick="closeLightDirect()">✕</button>
-    <div id="lb-content"></div>
+<div id="lb-overlay" role="dialog" aria-modal="true" aria-label="SVG viewer">
+  <div id="lb-box">
+    <div id="lb-hdr">
+      <span id="lb-badge"></span>
+      <span id="lb-model"></span>
+      <span id="lb-counter"></span>
+      <button id="lb-close" onclick="closeLb()" title="Close (Esc)">✕</button>
+    </div>
+    <div id="lb-svg"></div>
+    <div id="lb-ftr">
+      <button class="lb-nav" id="lb-prev" onclick="lbNav(-1)">&#8592;</button>
+      <div id="lb-prompt"></div>
+      <button class="lb-nav" id="lb-next" onclick="lbNav(1)">&#8594;</button>
+    </div>
   </div>
 </div>
 
 <script>
-function show(id){{
-  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
-  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
-  document.getElementById('panel-'+id).classList.add('active');
-  document.getElementById('tab-'+id).classList.add('active');
+{registry_js}
+{prompts_js}
+let lbPid = null, lbIdx = 0;
+
+function openLb(pid, idx) {{
+  lbPid = pid; lbIdx = idx;
+  renderLb();
+  document.getElementById('lb-overlay').classList.add('open');
+  document.getElementById('lb-overlay').focus();
 }}
-function openLight(card){{
-  const svg = card.querySelector('[data-svg]').innerHTML;
-  document.getElementById('lb-content').innerHTML = svg;
-  document.getElementById('lightbox').classList.add('open');
+
+function renderLb() {{
+  const items = REG[lbPid];
+  const item  = items[lbIdx];
+  document.getElementById('lb-badge').textContent  = item.provider;
+  document.getElementById('lb-badge').style.background = item.bg;
+  document.getElementById('lb-badge').style.color      = item.fg;
+  document.getElementById('lb-model').textContent  = item.model;
+  document.getElementById('lb-counter').textContent = (lbIdx+1) + ' / ' + items.length;
+  document.getElementById('lb-svg').innerHTML       = item.svg;
+  document.getElementById('lb-prompt').textContent  = PROMPTS_TEXT[lbPid] || '';
+  document.getElementById('lb-prev').disabled = lbIdx === 0;
+  document.getElementById('lb-next').disabled = lbIdx === items.length - 1;
 }}
-function closeLight(e){{
-  if(e.target===document.getElementById('lightbox')) closeLightDirect();
+
+function lbNav(dir) {{
+  const items = REG[lbPid];
+  lbIdx = Math.max(0, Math.min(items.length - 1, lbIdx + dir));
+  renderLb();
 }}
-function closeLightDirect(){{
-  document.getElementById('lightbox').classList.remove('open');
-  document.getElementById('lb-content').innerHTML='';
+
+function closeLb() {{
+  document.getElementById('lb-overlay').classList.remove('open');
+  document.getElementById('lb-svg').innerHTML = '';
+  lbPid = null;
 }}
-document.addEventListener('keydown',e=>{{ if(e.key==='Escape') closeLightDirect(); }});
+
+// Close on overlay click
+document.getElementById('lb-overlay').addEventListener('click', e => {{
+  if (e.target === document.getElementById('lb-overlay')) closeLb();
+}});
+
+// Keyboard nav
+document.addEventListener('keydown', e => {{
+  if (!document.getElementById('lb-overlay').classList.contains('open')) return;
+  if (e.key === 'Escape')     closeLb();
+  if (e.key === 'ArrowRight') lbNav(1);
+  if (e.key === 'ArrowLeft')  lbNav(-1);
+}});
+
+// Card keyboard activation
+document.querySelectorAll('.card').forEach(c => {{
+  c.addEventListener('keydown', e => {{ if (e.key === 'Enter' || e.key === ' ') c.click(); }});
+}});
+
+// Tab switching
+function showTab(id) {{
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.getElementById('panel-' + id).classList.add('active');
+  document.getElementById('tab-'   + id).classList.add('active');
+}}
+
+// Theme toggle
+function toggleTheme() {{
+  const html = document.documentElement;
+  const next = html.dataset.theme === 'dark' ? 'light' : 'dark';
+  html.dataset.theme = next;
+  document.getElementById('theme-btn').textContent = next === 'dark' ? '🌙' : '☀️';
+  try {{ localStorage.setItem('theme', next); }} catch(e) {{}}
+}}
+// Restore saved theme
+try {{
+  const saved = localStorage.getItem('theme');
+  if (saved) {{
+    document.documentElement.dataset.theme = saved;
+    document.getElementById('theme-btn').textContent = saved === 'dark' ? '🌙' : '☀️';
+  }}
+}} catch(e) {{}}
+
+// Scroll active tab into view on load
+document.querySelector('.tab.active')?.scrollIntoView({{block:'nearest',inline:'center'}});
 </script>
 </body>
 </html>"""
@@ -488,7 +648,7 @@ async def main(prompt_filter: list | None = None):
         save_cache(cache)
 
     with open(OUT_FILE, "w") as f:
-        f.write(build_html(cache, active_prompts))
+        f.write(build_html(cache))          # always render all prompts with data
     print(f"\nSaved → {OUT_FILE}")
 
 
@@ -497,9 +657,8 @@ if __name__ == "__main__":
 
     if "--html-only" in args:
         cache = load_cache()
-        active = list(PROMPTS.keys())
         with open(OUT_FILE, "w") as f:
-            f.write(build_html(cache, active))
+            f.write(build_html(cache))
         print(f"HTML regenerated → {OUT_FILE}")
         sys.exit(0)
 
