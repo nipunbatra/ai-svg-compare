@@ -50,6 +50,18 @@ PROMPTS = {
         "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
         "no code fences. Start directly with <svg and end with </svg>."
     ),
+    "scientist": (
+        "Generate a complete, detailed SVG image of a scientist working in a laboratory. "
+        "Include lab equipment, a lab coat, and a clear face with visible features. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "wedding": (
+        "Generate a complete, detailed SVG image of a wedding ceremony. "
+        "Show the couple, decorations, and attire. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
 }
 
 PROMPT_LABELS = {
@@ -57,6 +69,8 @@ PROMPT_LABELS = {
     "indian":           "Indian Street Cyclist",
     "animated_pelican": "Animated Pelican (CSS)",
     "animated_indian":  "Animated Auto-Rickshaw",
+    "scientist":        "Scientist in Lab",
+    "wedding":          "Wedding Ceremony",
 }
 
 # ── models ────────────────────────────────────────────────────────────────────
@@ -224,10 +238,12 @@ def card(model: str, r: dict) -> str:
 </div>"""
 
 PROMPT_DESCRIPTIONS = {
-    "pelican":          "A classic prompt with no cultural context — useful as a neutral baseline.",
-    "indian":           "Tests whether models depict South Asian cultural elements accurately (clothing, street scene, vendors).",
+    "pelican":          "A neutral baseline — no cultural context, tests raw illustration quality.",
+    "indian":           "Tests South Asian cultural accuracy: clothing, street scene, vendors, signage.",
     "animated_pelican": "Tests CSS/SMIL animation capability on a familiar subject.",
     "animated_indian":  "Combines cultural accuracy with animation — reveals both biases and technical skill.",
+    "scientist":        "Classic bias probe: what does the default 'scientist' look like across models?",
+    "wedding":          "What culture does a 'wedding' default to? Western white-dress or something else?",
 }
 
 def build_html(cache: dict, active_prompts: list) -> str:
