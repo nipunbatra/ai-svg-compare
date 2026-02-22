@@ -329,6 +329,12 @@ def extract_svg(text: str) -> str:
     m = re.search(r"(<svg[\s\S]*?</svg>)", text, re.IGNORECASE)
     return m.group(1) if m else ""
 
+def sanitize_svg(svg: str) -> str:
+    """Strip <script> elements from SVGs before inline HTML embedding.
+    SVG <script> tags cause the HTML parser to start a script block,
+    and </script> inside them terminates our JS prematurely."""
+    return re.sub(r"<script[\s\S]*?</script>", "", svg, flags=re.IGNORECASE)
+
 def load_cache() -> dict:
     if CACHE_FILE.exists():
         return json.loads(CACHE_FILE.read_text())
@@ -548,7 +554,7 @@ def build_html(cache: dict) -> str:
         gid        = static_pid          # use static pid as group id
         active_cls = " active" if i == 0 else ""
         if section_label:
-            tabs_html += f'<span class="tab-section-label">{section_label}</span>\n'
+            tabs_html += f'</div><div class="nav-section"><span class="nav-section-label">{section_label}</span>\n'
         tabs_html += (
             f'<button class="tab{active_cls}" onclick="showTab(\'{gid}\')" id="tab-{gid}">'
             f'{group_label}</button>\n'
@@ -565,7 +571,7 @@ def build_html(cache: dict) -> str:
             cards = ""
             for idx, (m, provider, _) in enumerate(pid_models):
                 bg, fg = STYLES.get(provider, ("#222", "#aaa"))
-                svg = cache.get(cache_key(pid, m), {}).get("svg", "")
+                svg = sanitize_svg(cache.get(cache_key(pid, m), {}).get("svg", ""))
                 cards += (
                     f"<div class=\"card\" onclick=\"openLb('{pid}',{idx})\" "
                     f'role="button" tabindex="0" aria-label="Expand {m}">'
@@ -607,6 +613,21 @@ def build_html(cache: dict) -> str:
         )
 
     n_models = len(models_for_pid(cache, active_groups[0][1])) if active_groups else 0
+
+    # Build mobile <select> options
+    mobile_select_html = ""
+    cur_optgroup = None
+    for group_label, static_pid, anim_pid, section_label in active_groups:
+        gid = static_pid
+        if section_label and section_label != cur_optgroup:
+            if cur_optgroup:
+                mobile_select_html += "</optgroup>"
+            mobile_select_html += f'<optgroup label="{section_label}">'
+            cur_optgroup = section_label
+        sel = ' selected' if group_label == active_groups[0][0] else ''
+        mobile_select_html += f'<option value="{gid}"{sel}>{group_label}</option>'
+    if cur_optgroup:
+        mobile_select_html += "</optgroup>"
 
 
     return f"""<!DOCTYPE html>
@@ -654,27 +675,42 @@ a{{color:inherit}}
   transition:background .15s;
 }}
 .theme-btn:hover{{background:var(--border2)}}
-/* ── tab bar ── */
-.tab-bar{{
-  position:sticky;top:0;z-index:20;background:var(--bg);
-  border-bottom:1px solid var(--border);
-  display:flex;overflow-x:auto;padding:0 12px;
-  scrollbar-width:none;-ms-overflow-style:none;
+/* ── layout: sidebar + content ── */
+.layout{{display:grid;grid-template-columns:210px 1fr;min-height:calc(100vh - 120px)}}
+/* ── sidebar nav ── */
+.sidebar{{
+  position:sticky;top:0;height:100vh;overflow-y:auto;
+  border-right:1px solid var(--border);background:var(--surface);
+  padding:12px 0 40px;scrollbar-width:thin;flex-shrink:0;
 }}
-.tab-bar::-webkit-scrollbar{{display:none}}
-.tab-section-label{{
-  align-self:center;font-size:.6rem;font-weight:700;letter-spacing:.08em;
-  text-transform:uppercase;color:var(--muted2);white-space:nowrap;
-  padding:0 4px 0 12px;flex-shrink:0;
+.sidebar::-webkit-scrollbar{{width:4px}}
+.sidebar::-webkit-scrollbar-thumb{{background:var(--border2);border-radius:4px}}
+.nav-section{{margin-top:18px}}
+.nav-section:first-child{{margin-top:4px}}
+.nav-section-label{{
+  font-size:.58rem;font-weight:800;letter-spacing:.1em;text-transform:uppercase;
+  color:var(--muted2);padding:4px 16px 4px;display:block;
 }}
-.tab-section-label:first-child{{padding-left:0}}
 .tab{{
-  background:none;border:none;border-bottom:3px solid transparent;
-  color:var(--muted);cursor:pointer;font-size:clamp(.75rem,2vw,.85rem);font-weight:500;
-  padding:12px 14px;white-space:nowrap;transition:color .15s,border-color .15s;flex-shrink:0;
+  display:block;width:100%;background:none;border:none;border-left:3px solid transparent;
+  color:var(--muted);cursor:pointer;font-size:.8rem;font-weight:500;text-align:left;
+  padding:8px 16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;
+  transition:color .12s,background .12s,border-color .12s;
 }}
-.tab:hover{{color:var(--text)}}
-.tab.active{{color:var(--text);border-bottom-color:var(--tab-active)}}
+.tab:hover{{color:var(--text);background:var(--surface2)}}
+.tab.active{{color:var(--text);border-left-color:var(--tab-active);background:var(--surface2);font-weight:600}}
+/* ── mobile nav (dropdown) ── */
+.mobile-nav{{display:none;padding:10px 14px;background:var(--surface);border-bottom:1px solid var(--border)}}
+.mobile-select{{
+  width:100%;padding:8px 12px;background:var(--surface2);border:1px solid var(--border2);
+  border-radius:8px;color:var(--text);font-size:.85rem;cursor:pointer;
+}}
+/* ── responsive: hide sidebar, show dropdown ── */
+@media(max-width:768px){{
+  .layout{{grid-template-columns:1fr}}
+  .sidebar{{display:none}}
+  .mobile-nav{{display:block}}
+}}
 /* ── prompt bar ── */
 .prompt-bar{{
   background:var(--surface);border-bottom:1px solid var(--border);
@@ -689,13 +725,15 @@ a{{color:inherit}}
 .prompt-full summary{{font-size:.72rem;color:var(--muted);cursor:pointer;user-select:none}}
 .prompt-full p{{margin-top:6px;font-size:.75rem;color:var(--muted);font-style:italic;
                 background:var(--surface2);padding:8px 12px;border-radius:6px;line-height:1.5}}
+/* ── content area ── */
+.content{{min-width:0;overflow:hidden}}
 /* ── panel / sub-tabs / grid ── */
 .panel{{display:none;padding:0 0 40px}}
 .panel.active{{display:block}}
 /* sub-tab toggle bar */
 .sub-tab-bar{{
   display:flex;background:var(--surface);border-bottom:1px solid var(--border);
-  padding:0 16px;gap:0;position:sticky;top:45px;z-index:15;
+  padding:0 16px;gap:0;position:sticky;top:0;z-index:15;
 }}
 .sub-tab{{
   background:none;border:none;border-bottom:3px solid transparent;
@@ -796,11 +834,19 @@ a{{color:inherit}}
   <button class="theme-btn" onclick="toggleTheme()" id="theme-btn" title="Toggle light/dark">🌙</button>
 </header>
 
-<div class="tab-bar" id="tab-bar">
+<div class="layout">
+<nav class="sidebar"><div class="nav-section">
 {tabs_html}
+</div></nav>
+<main class="content">
+<div class="mobile-nav">
+  <select class="mobile-select" onchange="showTab(this.value)" id="mobile-select">
+    {mobile_select_html}
+  </select>
 </div>
-
 {panels_html}
+</main>
+</div>
 
 <!-- lightbox -->
 <div id="lb-overlay" role="dialog" aria-modal="true" aria-label="SVG viewer">
@@ -882,6 +928,9 @@ function showTab(id) {{
   document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
   document.getElementById('panel-' + id).classList.add('active');
   document.getElementById('tab-'   + id).classList.add('active');
+  const sel = document.getElementById('mobile-select');
+  if (sel) sel.value = id;
+  document.getElementById('tab-' + id)?.scrollIntoView({{block:'nearest'}});
 }}
 
 // Sub-tab toggle (Static / Animated)
