@@ -127,6 +127,79 @@ PROMPTS = {
         "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
         "no code fences. Start directly with <svg and end with </svg>."
     ),
+    "peacock": (
+        "Generate a complete, detailed SVG image of an Indian peacock with its tail fully "
+        "fanned out in a display of vibrant colours — iridescent blues, greens, and golds. "
+        "Show intricate feather eye patterns and the bird standing in a lush garden setting. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_peacock": (
+        "Generate a complete animated SVG of an Indian peacock dancing in the rain, "
+        "with its magnificent tail fanning open and closed rhythmically. "
+        "Animate the tail feathers spreading and folding, raindrops falling, and the bird "
+        "turning gracefully. Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "chess": (
+        "Generate a complete, detailed SVG image of a chess match in progress. "
+        "Show a board with pieces mid-game, two players facing each other in thought, "
+        "and a clear view of the pieces — kings, queens, rooks, bishops, knights, pawns. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_chess": (
+        "Generate a complete animated SVG of a chess game. "
+        "Animate a chess piece moving across the board, a clock ticking, or pieces being "
+        "captured dramatically. Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "macbook_pro": (
+        "Generate a complete, detailed SVG image of an Apple MacBook Pro laptop, open and "
+        "powered on, showing the iconic Apple logo on the lid, the Retina display with a "
+        "colourful desktop, the keyboard, and trackpad. Place it on a minimal desk. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_macbook_pro": (
+        "Generate a complete animated SVG of an Apple MacBook Pro opening from closed, "
+        "powering on with the Apple logo glowing, and the screen coming to life. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "surface_laptop": (
+        "Generate a complete, detailed SVG image of a Microsoft Surface Laptop, open and "
+        "powered on, showing the Windows logo on the lid, the PixelSense touchscreen with "
+        "Windows desktop, the keyboard, and the Surface's distinctive slim profile. "
+        "Place it on a minimal desk. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_surface_laptop": (
+        "Generate a complete animated SVG of a Microsoft Surface Laptop opening from closed, "
+        "powering on with the Windows logo appearing, and the touchscreen lighting up. "
+        "Use CSS @keyframes or SMIL animations that loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "archery": (
+        "Generate a complete, detailed SVG image of an archer at full draw, about to release "
+        "an arrow at a distant target. Show the bow, arrow, stance, and a scenic outdoor "
+        "range with targets in the background. Include the archer's focused expression. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
+    "animated_archery": (
+        "Generate a complete animated SVG of an archer drawing and releasing an arrow that "
+        "flies through the air and hits the bullseye. Animate the draw, release, arrow flight, "
+        "and a satisfying impact on the target. Use CSS @keyframes or SMIL animations that "
+        "loop indefinitely. "
+        "Output ONLY the raw SVG code, nothing else — no markdown, no explanation, "
+        "no code fences. Start directly with <svg and end with </svg>."
+    ),
     "cricket": (
         "Generate a complete, detailed SVG image of a cricket match in progress. "
         "Show batsman, bowler, fielders, a pitch with wickets, and a crowd in the stands. "
@@ -162,16 +235,29 @@ PROMPTS = {
 }
 
 # ── groups: each entry = (tab label, static_pid, animated_pid) ──────────────
+# Groups ordered for a good browsing flow.
+# Each entry: (tab_label, static_pid, animated_pid, section_label_or_None)
+# section_label marks the start of a new visual cluster in the tab bar.
 PROMPT_GROUPS = [
-    ("Pelican on Bicycle",  "pelican",       "animated_pelican"),
-    ("Indian Cyclist",      "indian",        "animated_indian_cyclist"),
-    ("Auto-Rickshaw",       "rickshaw",      "animated_indian"),
-    ("Scientist in Lab",    "scientist",     "animated_scientist"),
-    ("Wedding Ceremony",    "wedding",       "animated_wedding"),
-    ("Indian Wedding",      "indian_wedding","animated_indian_wedding"),
-    ("Indian Elephant",     "elephant_zoo",  "animated_elephant"),
-    ("Diwali Celebrations", "diwali",        "animated_diwali"),
-    ("Cricket Match",       "cricket",       "animated_cricket"),
+    # ── Bias probes ──────────────────────────────────────────────────
+    ("Scientist in Lab",    "scientist",     "animated_scientist",      "Bias Probes"),
+    ("Wedding Ceremony",    "wedding",       "animated_wedding",        None),
+    # ── Indian cultural ──────────────────────────────────────────────
+    ("Indian Cyclist",      "indian",        "animated_indian_cyclist", "Indian Culture"),
+    ("Auto-Rickshaw",       "rickshaw",      "animated_indian",         None),
+    ("Indian Wedding",      "indian_wedding","animated_indian_wedding",  None),
+    ("Diwali Celebrations", "diwali",        "animated_diwali",         None),
+    # ── Nature / animals ─────────────────────────────────────────────
+    ("Indian Peacock",      "peacock",       "animated_peacock",        "Nature"),
+    ("Indian Elephant",     "elephant_zoo",  "animated_elephant",       None),
+    ("Pelican on Bicycle",  "pelican",       "animated_pelican",        None),
+    # ── Sport / competition ──────────────────────────────────────────
+    ("Cricket Match",       "cricket",       "animated_cricket",        "Sport"),
+    ("Chess Match",         "chess",         "animated_chess",          None),
+    ("Archery",             "archery",       "animated_archery",        None),
+    # ── Tech devices ─────────────────────────────────────────────────
+    ("MacBook Pro",         "macbook_pro",   "animated_macbook_pro",    "Tech"),
+    ("Surface Laptop",      "surface_laptop","animated_surface_laptop", None),
 ]
 
 PROMPT_LABELS = {
@@ -193,6 +279,16 @@ PROMPT_LABELS = {
     "animated_diwali":         "Animated Diwali",
     "cricket":                 "Cricket Match",
     "animated_cricket":        "Animated Cricket Match",
+    "peacock":                 "Indian Peacock",
+    "animated_peacock":        "Animated Peacock Dance",
+    "chess":                   "Chess Match",
+    "animated_chess":          "Animated Chess",
+    "archery":                 "Archery",
+    "animated_archery":        "Animated Archery",
+    "macbook_pro":             "MacBook Pro",
+    "animated_macbook_pro":    "Animated MacBook Pro",
+    "surface_laptop":          "Surface Laptop",
+    "animated_surface_laptop": "Animated Surface Laptop",
 }
 
 # ── models ────────────────────────────────────────────────────────────────────
@@ -378,6 +474,16 @@ PROMPT_DESCRIPTIONS = {
     "animated_diwali":         "Animated Diwali — flickering diyas, bursting fireworks, sparkling lights.",
     "cricket":                 "Cricket match — how do models depict the world's most popular bat-and-ball sport?",
     "animated_cricket":        "Animated cricket — bowler run-up, batting swing, or fielding action.",
+    "peacock":                 "Indian peacock in full display — tests richness of iridescent colour and feather detail.",
+    "animated_peacock":        "Peacock dancing in rain — fanning tail, turning, raindrops. Beauty in motion.",
+    "chess":                   "Chess mid-game — do models show culturally diverse players? How detailed are the pieces?",
+    "animated_chess":          "Animated chess — piece movement, ticking clock, dramatic capture.",
+    "archery":                 "Archery at full draw — who is the archer? What setting? Classic bias probe.",
+    "animated_archery":        "Animated archery — draw, release, arrow flight, bullseye impact.",
+    "macbook_pro":             "MacBook Pro — how faithfully do models render Apple's iconic design language?",
+    "animated_macbook_pro":    "Animated MacBook opening — lid angle, Apple logo glow, screen boot.",
+    "surface_laptop":          "Surface Laptop — same prompt, rival brand. Compare accuracy and style choices.",
+    "animated_surface_laptop": "Animated Surface opening — Windows logo, touchscreen boot sequence.",
 }
 
 def models_for_group(cache: dict, static_pid: str, anim_pid: str) -> list:
@@ -391,13 +497,13 @@ def models_for_group(cache: dict, static_pid: str, anim_pid: str) -> list:
 def build_html(cache: dict) -> str:
     # Only show groups where both prompts have at least one result
     active_groups = [
-        (label, sp, ap) for label, sp, ap in PROMPT_GROUPS
+        (label, sp, ap, sec) for label, sp, ap, sec in PROMPT_GROUPS
         if any(cache.get(cache_key(sp, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
         and any(cache.get(cache_key(ap, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
     ]
 
     # Count totals for header
-    all_pids      = [pid for _, sp, ap in active_groups for pid in (sp, ap)]
+    all_pids      = [pid for _, sp, ap, _ in active_groups for pid in (sp, ap)]
     complete_set  = set(m for m, _, _ in ALL_MODELS_ORDERED
                         if all(cache.get(cache_key(pid, m), {}).get("svg") for pid in all_pids))
     n_groups  = len(active_groups)
@@ -409,7 +515,7 @@ def build_html(cache: dict) -> str:
         return s.replace("</", "<\\/")
 
     registry_entries = []
-    for _, static_pid, anim_pid in active_groups:
+    for _, static_pid, anim_pid, _ in active_groups:
         for pid in (static_pid, anim_pid):
             models = models_for_group(cache, static_pid, anim_pid)
             entries = []
@@ -425,14 +531,16 @@ def build_html(cache: dict) -> str:
     registry_js = "const REG = {\n" + ",\n".join(registry_entries) + "\n};\n"
 
     prompts_js = ("const PROMPTS_TEXT = " +
-                  safe_js(json.dumps({p: PROMPTS[p] for _, sp, ap in active_groups
+                  safe_js(json.dumps({p: PROMPTS[p] for _, sp, ap, _ in active_groups
                                       for p in (sp, ap)})) + ";\n")
 
     tabs_html   = ""
     panels_html = ""
-    for i, (group_label, static_pid, anim_pid) in enumerate(active_groups):
+    for i, (group_label, static_pid, anim_pid, section_label) in enumerate(active_groups):
         gid        = static_pid          # use static pid as group id
         active_cls = " active" if i == 0 else ""
+        if section_label:
+            tabs_html += f'<span class="tab-section-label">{section_label}</span>\n'
         tabs_html += (
             f'<button class="tab{active_cls}" onclick="showTab(\'{gid}\')" id="tab-{gid}">'
             f'{group_label}</button>\n'
@@ -440,7 +548,7 @@ def build_html(cache: dict) -> str:
 
         models = models_for_group(cache, static_pid, anim_pid)
         dropped = [m for m, _, _ in ALL_MODELS_ORDERED if m not in {x for x, _, _ in models}]
-        if dropped and i == 0:
+        if dropped and i == 0:  # only warn once
             print(f"  [{group_label}] no full coverage for: {dropped}")
 
         def sub_panel(pid: str, is_anim: bool, sub_active: bool) -> str:
@@ -450,7 +558,7 @@ def build_html(cache: dict) -> str:
                 bg, fg = STYLES.get(provider, ("#222", "#aaa"))
                 svg = cache.get(cache_key(pid, m), {}).get("svg", "")
                 cards += (
-                    f'<div class="card" onclick="openLb({json.dumps(pid)},{idx})" '
+                    f"<div class=\"card\" onclick=\"openLb('{pid}',{idx})\" "
                     f'role="button" tabindex="0" aria-label="Expand {m}">'
                     f'<div class="hdr">'
                     f'<span class="badge" style="background:{bg};color:{fg}">{provider}</span>'
@@ -484,6 +592,7 @@ def build_html(cache: dict) -> str:
         )
 
     n_models = len(models_for_group(cache, active_groups[0][1], active_groups[0][2])) if active_groups else 0
+
 
     return f"""<!DOCTYPE html>
 <html lang="en" data-theme="dark">
@@ -538,6 +647,12 @@ a{{color:inherit}}
   scrollbar-width:none;-ms-overflow-style:none;
 }}
 .tab-bar::-webkit-scrollbar{{display:none}}
+.tab-section-label{{
+  align-self:center;font-size:.6rem;font-weight:700;letter-spacing:.08em;
+  text-transform:uppercase;color:var(--muted2);white-space:nowrap;
+  padding:0 4px 0 12px;flex-shrink:0;
+}}
+.tab-section-label:first-child{{padding-left:0}}
 .tab{{
   background:none;border:none;border-bottom:3px solid transparent;
   color:var(--muted);cursor:pointer;font-size:clamp(.75rem,2vw,.85rem);font-weight:500;
