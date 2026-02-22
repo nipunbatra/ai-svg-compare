@@ -486,8 +486,15 @@ PROMPT_DESCRIPTIONS = {
     "animated_surface_laptop": "Animated Surface opening — Windows logo, touchscreen boot sequence.",
 }
 
+def models_for_pid(cache: dict, pid: str) -> list:
+    """Models that have an SVG for a given prompt id."""
+    return [
+        (m, provider, fn) for m, provider, fn in ALL_MODELS_ORDERED
+        if cache.get(cache_key(pid, m), {}).get("svg")
+    ]
+
 def models_for_group(cache: dict, static_pid: str, anim_pid: str) -> list:
-    """Models that have SVGs for both pids in a group."""
+    """Models that have SVGs for both pids in a group (used for lightbox registry)."""
     return [
         (m, provider, fn) for m, provider, fn in ALL_MODELS_ORDERED
         if (cache.get(cache_key(static_pid, m), {}).get("svg") and
@@ -499,7 +506,6 @@ def build_html(cache: dict) -> str:
     active_groups = [
         (label, sp, ap, sec) for label, sp, ap, sec in PROMPT_GROUPS
         if any(cache.get(cache_key(sp, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
-        and any(cache.get(cache_key(ap, m), {}).get("svg") for m, _, _ in ALL_MODELS_ORDERED)
     ]
 
     # Count totals for header
@@ -517,9 +523,11 @@ def build_html(cache: dict) -> str:
     registry_entries = []
     for _, static_pid, anim_pid, _ in active_groups:
         for pid in (static_pid, anim_pid):
-            models = models_for_group(cache, static_pid, anim_pid)
+            pid_models = models_for_pid(cache, pid)
+            if not pid_models:
+                continue
             entries = []
-            for m, provider, _ in models:
+            for m, provider, _ in pid_models:
                 bg, fg = STYLES.get(provider, ("#222", "#aaa"))
                 svg = cache.get(cache_key(pid, m), {}).get("svg", "")
                 entries.append(
@@ -546,15 +554,16 @@ def build_html(cache: dict) -> str:
             f'{group_label}</button>\n'
         )
 
-        models = models_for_group(cache, static_pid, anim_pid)
-        dropped = [m for m, _, _ in ALL_MODELS_ORDERED if m not in {x for x, _, _ in models}]
-        if dropped and i == 0:  # only warn once
-            print(f"  [{group_label}] no full coverage for: {dropped}")
+        static_models = models_for_pid(cache, static_pid)
+        anim_models   = models_for_pid(cache, anim_pid)
+        has_anim      = bool(anim_models)
 
-        def sub_panel(pid: str, is_anim: bool, sub_active: bool) -> str:
+        def sub_panel(pid: str, pid_models: list, is_anim: bool, sub_active: bool) -> str:
+            if not pid_models:
+                return ""
             desc = PROMPT_DESCRIPTIONS.get(pid, "")
             cards = ""
-            for idx, (m, provider, _) in enumerate(models):
+            for idx, (m, provider, _) in enumerate(pid_models):
                 bg, fg = STYLES.get(provider, ("#222", "#aaa"))
                 svg = cache.get(cache_key(pid, m), {}).get("svg", "")
                 cards += (
@@ -578,20 +587,26 @@ def build_html(cache: dict) -> str:
                 f'</div>'
             )
 
+        # Sub-tab bar: only show Animated tab if results exist
+        anim_btn = (
+            f'<button class="sub-tab anim" id="stab-{gid}-anim" '
+            f'onclick="showSub(\'{gid}\',\'anim\')">Animated ▶</button>'
+            if has_anim else
+            f'<span class="sub-tab anim disabled" title="Generating…">Animated ▶ ⏳</span>'
+        )
         panels_html += (
             f'<div class="panel{active_cls}" id="panel-{gid}">'
             f'<div class="sub-tab-bar">'
             f'<button class="sub-tab sub-active" id="stab-{gid}-static" '
             f'onclick="showSub(\'{gid}\',\'static\')">Static</button>'
-            f'<button class="sub-tab anim" id="stab-{gid}-anim" '
-            f'onclick="showSub(\'{gid}\',\'anim\')">Animated ▶</button>'
+            f'{anim_btn}'
             f'</div>'
-            f'{sub_panel(static_pid, False, True)}'
-            f'{sub_panel(anim_pid,   True,  False)}'
+            f'{sub_panel(static_pid, static_models, False, True)}'
+            f'{sub_panel(anim_pid,   anim_models,   True,  False)}'
             f'</div>'
         )
 
-    n_models = len(models_for_group(cache, active_groups[0][1], active_groups[0][2])) if active_groups else 0
+    n_models = len(models_for_pid(cache, active_groups[0][1])) if active_groups else 0
 
 
     return f"""<!DOCTYPE html>
@@ -690,6 +705,7 @@ a{{color:inherit}}
 .sub-tab:hover{{color:var(--text)}}
 .sub-tab.sub-active{{color:var(--text);border-bottom-color:var(--tab-active)}}
 .sub-tab.anim.sub-active{{color:#5dbb5d;border-bottom-color:#5dbb5d}}
+.sub-tab.disabled{{color:var(--muted2);cursor:default;font-style:italic;border-bottom-color:transparent}}
 /* sub-panels */
 .sub-panel{{display:none}}
 .sub-panel.sub-active{{display:block}}

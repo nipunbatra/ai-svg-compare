@@ -33,6 +33,11 @@ ANIMATED = {
     "animated_cricket":        "cricket",
     "animated_indian_wedding": "indian_wedding",
     "animated_elephant":       "elephant_zoo",
+    "animated_peacock":        "peacock",
+    "animated_chess":          "chess",
+    "animated_archery":        "archery",
+    "animated_macbook_pro":    "macbook_pro",
+    "animated_surface_laptop": "surface_laptop",
 }
 
 FPS      = 12
